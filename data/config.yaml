@@ -1,0 +1,21 @@
+# 승승장구몰 CS Agent 설정 파일 (29강)
+app:
+  name: "승승장구 CS Agent"
+  version: "1.0.0"
+  language: "ko"
+
+llm:
+  provider: "openai"          # gemini | openai
+  model: "gpt-4o-mini"    # "gemini-2.5-flash"
+  temperature: 0.2
+  max_retries: 3
+
+rag:
+  embed_model: "text-embedding-3-small"  #"models/gemini-embedding-001"
+  chunk_size: 500
+  chunk_overlap: 50
+  top_k: 4
+
+logging:
+  level: "INFO"
+  file: "logs/agent.log"
