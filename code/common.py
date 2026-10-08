@@ -14,6 +14,9 @@ import os
 import pathlib
 from dotenv import load_dotenv
 
+if "SSL_CERT_FILE" in os.environ and not os.path.exists(os.environ["SSL_CERT_FILE"]):
+    del os.environ["SSL_CERT_FILE"]
+
 # override=True 옵션을 주어 기존 환경변수를 .env 값으로 강제 덮어씁니다.
 load_dotenv(override=True)
 
