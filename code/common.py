@@ -60,7 +60,6 @@ def get_genai_client():
     from google import genai
     return genai.Client(api_key=require_key("GOOGLE_API_KEY"))
 
-
 # ---------- LangChain Chat 모델 (현업용) ----------
 def get_chat(provider: str = "openai", temperature: float = 0.0):  
     """LangChain ChatModel 반환. provider: 'openai'(기본) | 'gemini'."""
