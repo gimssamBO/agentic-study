@@ -1,9 +1,14 @@
-import sys, pathlib
+import pathlib
+import sys
+
 sys.path.append(str(pathlib.Path(__file__).resolve().parent))
-from common import get_chat, get_embeddings, DOCS
+from common import DOCS, get_chat, get_embeddings
 from langchain_community.document_loaders import PyPDFLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnablePassthrough
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 # 교안1. 인덱싱 — 두 문서 통합 retriever
 def build_retriever():
@@ -23,14 +28,18 @@ retriever = build_retriever()
 docs = retriever.invoke("환불 며칠 걸려?")   # 질문 → 관련 청크 4개
 
 # 교안3. 프롬프트와 format_docs
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
-
 PROMPT = ChatPromptTemplate.from_template(
     "너는 승승장구몰 CS 상담원이다.\n"
     "아래 [문서] 내용만 근거로 한국어로 정확히 답하라.\n"
     "문서에 없는 내용은 추측하지 말고 '제공된 문서에서 찾을 수 없습니다'라고 답하라.\n\n"
+    "[문서]\n{context}\n\n[질문] {question}\n\n[답변]"
+)
+
+# 추가 요청된 폴백 프롬프트 (ChatPromptTemplate 대소문자 교정)
+prompt_with_fallback = ChatPromptTemplate.from_template(
+    "너는 승승장구몰 cs 상담원이다.\n"
+    "아래 [문서] 내용만 근거로 답하라.\n"
+    "문서에 없으면 '해당 내용은 확인이 어렵습니다. 고객센터(1588-0000)로 문의해 주세요'라고 답하라.\n\n"
     "[문서]\n{context}\n\n[질문] {question}\n\n[답변]"
 )
 
@@ -50,7 +59,6 @@ rag_chain = (
 print(rag_chain.invoke("환불 며칠 걸려?"))
 
 
-
 # 교안1. 서비스 객체는 1회만 생성
 # 서비스 객체는 1회만 생성해 재사용
 _retriever = None
@@ -61,7 +69,7 @@ def _ensure():
     global _retriever, _llm
     if _retriever is None:
         _retriever = build_retriever()
-        _llm = get_chat( temperature=0)
+        _llm = get_chat(temperature=0)
 
 # 교안2. answer 함수
 def answer(question: str) -> dict:
@@ -90,3 +98,12 @@ print("답변:", res["answer"])
 print("출처:")
 for s in res["sources"]:
     print(f"  - {s['source']} p.{s['page']}")
+
+
+# 테스트 케이스 실행
+test_cases = [
+    ("환불 며칠 걸려?", "3일"),           # 문서에 있음 → "3일" 포함해야
+    ("당일 새벽배송 되나요?", "찾을 수 없"),  # 문서에 없음 → "찾을 수 없" 포함해야
+]
+passed = sum(1 for q, expected in test_cases if expected in answer(q)["answer"])
+print(f"통과: {passed}/{len(test_cases)}")
