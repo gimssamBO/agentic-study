@@ -1,16 +1,15 @@
 # ch18_rag_tool.py  여러툴을 사용하는 에이전트
-
-
 import sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parent))
 from common import get_chat, get_embeddings, DOCS, DATA
 import pandas as pd
 
+# 교안1. 데이터는 1회만 로드
 # 데이터 1회 로드(요청마다 재로딩 금지)
 orders = pd.read_csv(DATA / "orders.csv")
 products = pd.read_csv(DATA / "products.csv")
 
-
+# 교안2. 정책 검색 도구 만들기
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
@@ -31,7 +30,13 @@ def build_policy_tool():
         "policy_search",
         "승승장구몰 환불/교환/멤버십 정책 문서를 검색한다. 정책·절차·규정 질문에 사용.")
 
+# 교안4. 도구 단독 테스트
+print("=== 정책 검색 도구 테스트 ===")
+policy_tool = build_policy_tool()
+print(policy_tool.invoke("환불 절차"))
 
+
+# 교안1. 주문 상태 조회 도구
 import pandas as pd
 from langchain_core.tools import tool
 from common import DATA
@@ -50,7 +55,7 @@ def get_order_status(order_id: str) -> str:
             f"주문일={r['order_date']}, 수량={r['quantity']}")
 
 
-
+# 교안2. 재고 조회 도구
 
 # 재고 조회 도구
 products = pd.read_csv(DATA / "products.csv")
@@ -65,10 +70,19 @@ def get_stock(product_name: str) -> str:
     r = row.iloc[0]
     return f"'{r['product_name']}' 재고: {r['stock']}개"
 
+# 교안4. 도구 단독 테스트
+print("=== 주문 상태 조회 도구 테스트 ===")
+print(get_order_status.invoke({"order_id": "o000902"}))
+print(get_stock.invoke({"product_name": "이어버드"}))
 
+# 없는 경우도 테스트
+print(get_order_status.invoke({"order_id": "x9999"}))   # 안전한 안내
+
+
+
+# 교안1. 한 에이전트에 묶기
 ##############################################################
 # 한 에이전트에 묶기
-
 from langchain.agents import create_agent
 from common import get_chat
 
@@ -85,12 +99,14 @@ agent = create_agent(
     ),
 )
 
+# 교안2. 복합 질문 던지기
 q = "어제 받은 이어버드 환불하고 싶은데 절차랑, 내 주문 O000902 상태 알려줘"
 out = agent.invoke({"messages": [{"role": "user", "content": q}]})
 for m in out["messages"]:
     m.pretty_print()
 print("\n[최종 답변]\n", out["messages"][-1].content)
 
+print("\n=== 에이전트 도구 사용 내역 ===")
 print('agent:', agent)
 
 
