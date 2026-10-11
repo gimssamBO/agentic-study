@@ -4,6 +4,7 @@ from common import DATA
 SRC = DATA / "user_profiles.json"        # 원본(읽기 전용)
 STORE = DATA / "user_profiles_rw.json"   # 실제 읽고/쓰는 복사본(영속 저장소)
 
+# 교안1. 영속 저장소 도우미 (load/save)
 def _load() -> dict:
     """저장소(JSON)를 읽어 dict로 반환. 없으면 원본을 복사해 초기화."""
     if not STORE.exists():
@@ -16,7 +17,7 @@ def _save(data: dict) -> None:
     with open(STORE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-
+# 교안2. 읽기 도구 — get_profile
 from langchain_core.tools import tool
 
 @tool
@@ -28,8 +29,7 @@ def get_profile(customer_id: str) -> str:
         return f"{customer_id} 프로필이 없습니다."   # 없어도 안전한 메시지
     return json.dumps(p, ensure_ascii=False)       
 
-
-
+# 교안3. 쓰기 도구 — update_profile
 @tool
 def update_profile(customer_id: str, field: str, value: str) -> str:
     """고객 프로필의 한 필드를 갱신해 영속 저장한다.
@@ -43,12 +43,18 @@ def update_profile(customer_id: str, field: str, value: str) -> str:
     _save(data)                          # ← 여기서 파일에 영속 저장!
     return f"{customer_id}의 '{field}'을(를) '{value}'(으)로 저장했습니다."
 
+# 교안4. 도구 단독 테스트
+print(get_profile.invoke({"customer_id": "C0001"}))   # 기존 프로필 조회
+print(update_profile.invoke({"customer_id": "C0001", "field": "비고", "value": "무향 선호"}))
+print(get_profile.invoke({"customer_id": "C0001"}))   # 변경 확인
 
-# print(get_profile.invoke({"customer_id": "C0001"}))   # 기존 프로필 조회
-# print(update_profile.invoke({"customer_id": "C0001", "field": "비고", "value": "무향 선호"}))
-# print(get_profile.invoke({"customer_id": "C0001"}))   # 변경 확인
+# 교안5. JSON 파일 직접 확인
+import json
+print(json.dumps(_load()["C0001"], ensure_ascii=False, indent=2))
 
+# ===================================================================
 
+# 교안1. 장기 + 단기 기억 함께
 from langchain.agents import create_agent
 from langgraph.checkpoint.memory import InMemorySaver
 from common import get_chat
@@ -73,11 +79,17 @@ def say(agent, text, thread_id):
     return out["messages"][-1].content
 
 
-
+# 교안2. 1단계 — 알레르기 정보 저장
 agent = build_agent()
 print(say(agent, "저 C0001 임도현인데요, 선크림 알레르기 있어요. 기억해 주세요.", "sess-1"))
 
-
+# 교안3. 2단계 — 핵심 실험: 새 에이전트로 조회
 # 새 에이전트 = 단기 기억 완전히 비워짐 (재시작 시뮬레이션)
 agent2 = build_agent()
 print(say(agent2, "C0001 고객에게 화장품 추천할 때 주의할 점 있어?", "sess-2"))
+
+print("================================ 새 에이전트에서 C0001 프로필 조회 =================================")
+# 교안5. 파일로 검증
+import json
+print(json.dumps(_load()["C0001"], ensure_ascii=False, indent=2))
+
