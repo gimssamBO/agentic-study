@@ -1,3 +1,4 @@
+# 교안1. 공통 시작부 + 상태 스키마
 import sys, pathlib
 sys.path.append(str(pathlib.Path(__file__).resolve().parent))
 from common import get_chat, DATA
@@ -13,8 +14,7 @@ class TicketState(TypedDict):
     priority: str   # 우선순위 노드가 채움
     team: str       # 배정 노드가 채움
 
-
-
+# 교안2. 노드 1 — 분류 (LLM)
 llm = get_chat(temperature=0)
 CATEGORIES = ["결제", "배송", "환불", "교환", "회원", "기술지원", "기타"]
 
@@ -32,6 +32,7 @@ def classify_node(state: TicketState) -> dict:
 URGENT_WORDS = ["결제", "오류", "안 돼", "파손", "안와", "안 와"]
 HIGH_WORDS = ["환불", "교환", "튕"]
 
+# 교안3. 노드 2 — 우선순위 (규칙)
 def priority_node(state: TicketState) -> dict:
     """[노드2] 카테고리/키워드로 우선순위를 정한다. (규칙)"""
     text = state["content"]
@@ -43,7 +44,7 @@ def priority_node(state: TicketState) -> dict:
         priority = "보통"
     return {"priority": priority}
 
-
+# 교안4. 노드 3 — 배정 (규칙)
 TEAM_MAP = {
     "결제": "결제지원팀", "환불": "정산팀", "교환": "물류팀",
     "배송": "물류팀", "회원": "회원관리팀", "기술지원": "기술지원팀",
@@ -54,7 +55,9 @@ def assign_node(state: TicketState) -> dict:
     team = TEAM_MAP.get(state["category"], "일반상담팀")  # 없으면 일반상담팀
     return {"team": team}
 
+# =========================================================================
 
+# 교안1. 그래프 조립
 from langgraph.graph import StateGraph, START, END
 
 def build_workflow():
@@ -70,11 +73,12 @@ def build_workflow():
     return g.compile()                       # 실행 가능한 워크플로우로 컴파일
 
 
-
+# 교안2. 워크플로우 실행
 workflow = build_workflow()
-# result = workflow.invoke({"content": "결제가 안 돼요. 계속 오류가 납니다."})
-# print(result)
+result = workflow.invoke({"content": "결제가 안 돼요. 계속 오류가 납니다."}) 
+print(result)
 
+# 교안4. CSV 일괄 처리
 with open(DATA / "support_tickets.csv", encoding="utf-8-sig") as f:
     tickets = list(csv.DictReader(f))
 
