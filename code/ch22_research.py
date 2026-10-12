@@ -3,13 +3,13 @@
 import sys, pathlib, datetime
 sys.path.append(str(pathlib.Path(__file__).resolve().parent))  # code/ 를 import 경로에
 from common import get_chat
+# 교안1. 검색 도구를 붙인 에이전트
 
 # DuckDuckGoSearchResults: 키가 필요 없는 무료 웹 검색 도구(ddgs 패키지 기반).
 #   [왜 검색 도구] LLM은 학습 시점 이후의 '최신 정보'를 모른다(지식 컷오프).
 #   웹 검색으로 실시간 사실을 끌어와 답을 '사실에 근거(grounding)'시킨다.
 from langchain_community.tools import DuckDuckGoSearchResults
 from langchain.agents import create_agent   # LLM+도구를 묶어 스스로 도구를 쓰는 에이전트 생성
-
 
 def build_research_agent():
     """웹 검색 도구를 붙인 리서치 에이전트를 만들어 반환한다.
@@ -31,7 +31,7 @@ def build_research_agent():
     )
     return agent
 
-
+# 교안2. 조사 실행 + 폴백 처리
 def research(topic: str) -> str:
     """주제를 조사해 마크다운 리포트 본문(문자열)을 반환한다.
 
@@ -55,11 +55,7 @@ def research(topic: str) -> str:
         return llm.invoke(prompt).text
 
 
-
-
-
-
-
+# 교안3. 실행해 보기
 # if __name__ == "__main__":
 #     topic = "경쟁 무선이어버드 시장 동향"
 #     print(f"[조사 시작] {topic}")
@@ -68,7 +64,8 @@ def research(topic: str) -> str:
 #     print(body[:600], "...")      # 앞부분만 미리보기
 #     print("=" * 60)
 
-
+# =========================================================
+# 교안1. 저장 함수 만들기
 def save_report(topic: str, body: str) -> pathlib.Path:
     """리포트 본문을 헤더와 함께 reports/ 폴더에 .md로 저장하고 경로를 반환한다.
 
@@ -83,8 +80,7 @@ def save_report(topic: str, body: str) -> pathlib.Path:
     path.write_text(header + body, encoding="utf-8")   # 한글 깨짐 방지 위해 utf-8 명시
     return path
 
-
-
+# 교안2. 전체 실행 코드
 # if __name__ == "__main__":
 #     topic = "경쟁 무선이어버드 시장 동향"
 #     print(f"[조사 시작] {topic}")
@@ -95,17 +91,17 @@ def save_report(topic: str, body: str) -> pathlib.Path:
 #     print("=" * 60)
 #     print("[저장 완료]", path)
 
-#########################################################
-#2. 구조화 출력으로 하위 질의 받기
+
+
+##########################################################
+# 교안2. 구조화 출력으로 하위 질의 받기
 from pydantic import BaseModel, Field
 class SubQueries(BaseModel):
     """[왜 구조화] LLM이 자유 텍스트로 질의를 내면 파싱이 흔들린다.
     Pydantic으로 '리스트'를 강제해 안정적으로 하위 질의를 받는다."""
     queries: list[str] = Field(description="원주제를 조사하기 위한 3~4개의 구체적 하위 검색 질의")
 
-
-##################################################
-#3. 주제 분해 함수
+# 교안3. 주제 분해 함수
 def split_topic(topic: str) -> list[str]:
     """큰 주제를 3~4개의 하위 질의로 분해한다(구조화 출력)."""
     llm = get_chat(temperature=0.2)
@@ -122,9 +118,7 @@ def split_topic(topic: str) -> list[str]:
         print(f"[경고] 질의 분해 실패 → 기본 질의 사용: {e}")
         return [f"{topic} 시장 규모", f"{topic} 최신 동향", f"{topic} 주요 기업"]
     
-
-#####################################################################
-#4. 하위 질의별 검색 (각각 폴백)
+# 교안4. 하위 질의별 검색 (각각 폴백)
 def search_one(query: str) -> str:
     """하위 질의 하나를 웹 검색해 결과 텍스트를 반환한다(실패 시 폴백)."""
     try:
@@ -135,9 +129,7 @@ def search_one(query: str) -> str:
         llm = get_chat(temperature=0.3)
         return llm.invoke(f"'{query}'에 대해 아는 범위에서 핵심 사실 3가지를 한국어로 정리하라.").content
     
-
-#######################################################
-#5. 결과 종합 — 하나의 리포트로
+# 교안5. 결과 종합 — 하나의 리포트로
 def synthesize(topic: str, findings: list[tuple]) -> str:
     """하위 질의별 검색 결과들을 하나의 마크다운 리포트로 종합한다."""
     llm = get_chat(temperature=0.3)
@@ -150,10 +142,7 @@ def synthesize(topic: str, findings: list[tuple]) -> str:
     )
     return llm.invoke(prompt).content
 
-
-########################################################
-#6. 전체 파이프라인
-
+# 교안6. 전체 파이프라인
 
 def deep_research(topic: str) -> str:
     """주제 분해 → 하위 검색 → 종합의 전체 파이프라인."""
