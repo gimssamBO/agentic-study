@@ -71,7 +71,6 @@ def build_agents():
     )
     return llm, sales_agent, policy_agent
 
-
 ##############################################
 #5. 에이전트 단독 테스트
 if __name__ == "__main__":
@@ -89,7 +88,7 @@ if __name__ == "__main__":
 
 ##########################
   # 2. (A) 규칙 기반 라우터 — 빠르고 공짜  -  이방식은 약간 부정확함
-    # supervisor: 여러 에이전트 중 '어디로 보낼지'를 결정하는 라우팅 담당.
+# supervisor: 여러 에이전트 중 '어디로 보낼지'를 결정하는 라우팅 담당.
 POLICY_WORDS = ["환불", "교환", "배송", "취소", "적립", "포인트", "무료배송", "회원", "등급"]
 
 
@@ -127,8 +126,6 @@ def supervisor(llm, sales_agent, policy_agent, question: str, use_llm: bool = Fa
     print(f"  [Supervisor] '{question}' → {target} 에이전트로 라우팅")
     result = agent.invoke({"messages": [{"role": "user", "content": question}]})
     return result["messages"][-1].content   # 위임받은 에이전트의 최종 답변
-
-
 
 ##########################
 #5. 실행
