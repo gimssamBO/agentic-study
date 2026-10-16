@@ -1,6 +1,5 @@
 ######################################
 # 1. 시작부와 데이터 로드
-
 # -*- coding: utf-8 -*-
 # 실행: python code/ch26_role_agent.py
 import sys, pathlib
@@ -15,7 +14,6 @@ from langchain_core.messages import SystemMessage, HumanMessage
 #   Planner(계획 세우는 역할)가 작업을 잘게 쪼개고, Worker(실행 역할)가 한 작업씩
 #   집중 수행하면 각자 잘하는 일에만 몰두해 품질이 올라간다. (25강 역할 분리의 연장선)
 
-
 def load_brief_text(campaign_id: str = "CMP02") -> str:
     """캠페인 ID로 브리프 1건을 읽어 LLM에 넣을 한 줄 텍스트로 만든다."""
     brief = pd.read_csv(DATA / "marketing_brief.csv")
@@ -26,8 +24,6 @@ def load_brief_text(campaign_id: str = "CMP02") -> str:
         f"핵심혜택: {campaign.key_offer}"
     )
 
-
-
 ################################
 # 2. 구조화 출력 스키마
 class Plan(BaseModel):
@@ -36,16 +32,13 @@ class Plan(BaseModel):
     #   결과를 바로 반복(for)할 수 있게 한다. 파싱 실수가 사라진다.
     subtasks: list[str] = Field(description="이 캠페인을 위해 필요한 하위 작업 3~4개")
 
-
 ############################
 # 3. Planner 함수
-
 PLANNER_SYSTEM = (        # Planner 역할 고정 프롬프트 — '쪼개기만, 실행은 금지'
     "너는 마케팅 캠페인 '기획 설계자(Planner)'다. "
     "주어진 캠페인 브리프를 보고, 실행에 필요한 하위 작업을 3~4개로 쪼개라. "
     "작업은 서로 겹치지 않게, 한 문장 명령형으로 작성하라. 실행은 하지 마라."
 )
-
 
 def plan(llm, brief_text: str) -> list[str]:
     """브리프를 보고 하위 작업 리스트(JSON)로 분해한다."""
@@ -55,7 +48,6 @@ def plan(llm, brief_text: str) -> list[str]:
         HumanMessage(f"[캠페인 브리프]\n{brief_text}"),  # 입력 데이터
     ])
     return result.subtasks                       # 하위 작업 문자열 리스트
-
 
 ###########################
 # 4. 실행해 확인
@@ -73,13 +65,11 @@ def plan(llm, brief_text: str) -> list[str]:
 
 #######################################
 # 1. Worker 함수
-
 WORKER_SYSTEM = (         # Worker 역할 고정 프롬프트 — '딱 한 작업만' 집중
     "너는 마케팅 '실무 작업자(Worker)'다. "
     "주어진 캠페인 브리프 맥락에서, 지정된 '하나의 작업'만 구체적으로 수행하라. "
     "결과는 5줄 이내로 실무에 바로 쓸 수 있게 작성하라."
 )
-
 
 def work(llm, brief_text: str, subtask: str) -> str:
     """하나의 하위 작업만 받아 구체적으로 수행한 결과를 반환한다."""
@@ -90,8 +80,11 @@ def work(llm, brief_text: str, subtask: str) -> str:
     return result.content
 
 
+
+
+
  ################################
- # 4. 실행해 확인
+# 4. 실행해 확인
 # if __name__ == "__main__":
 #     brief_text = load_brief_text("CMP02")
 #     llm_plan = get_chat(temperature=0)
@@ -137,7 +130,6 @@ def run_campaign(brief_text: str) -> str:
 def main():
     brief_text = load_brief_text("CMP02")   # 캠페인 1건 텍스트 로드
     print(run_campaign(brief_text))
-
 
 if __name__ == "__main__":
     main()
