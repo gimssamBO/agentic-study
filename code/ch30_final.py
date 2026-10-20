@@ -1,4 +1,3 @@
-
 #############################################################
 # 1. 시작부 + 29강 자산 재사용
 # -*- coding: utf-8 -*-
@@ -18,7 +17,6 @@ orders = pd.read_csv(DATA / "orders.csv")        # 주문 데이터
 inventory = pd.read_csv(DATA / "inventory.csv")  # 재고 데이터
 faq = pd.read_csv(DATA / "faq.csv")              # FAQ 데이터
 
-
 ##################################################
 # 2. 주문 조회 도구 (R2)
 @tool
@@ -34,7 +32,6 @@ def get_order_status(order_id: str) -> str:
     return (f"주문 {r.order_id}: {r.product_name} {r.quantity}개, "
             f"{int(r.amount):,}원, 주문일 {r.order_date}, 상태={r.status}")
 
-
 ####################################################
 #3. 재고 조회 도구 (R3)
 @tool
@@ -45,8 +42,6 @@ def get_stock(product_name: str) -> str:
         return f"'{product_name}' 상품 재고 정보를 찾을 수 없습니다."
     return "\n".join(f"{r.product_name}: 재고 {r.stock}개({r.warehouse}창고)"
                      for r in hit.head(3).itertuples())
-
-
 
 #############################################
 #4. FAQ 검색 도구 (R4)
@@ -60,8 +55,6 @@ def search_faq(keyword: str) -> str:
         return "관련 FAQ를 찾지 못했습니다."
     return "\n".join(f"Q.{r.question}\nA.{r.answer}" for r in hit.head(2).itertuples())
 
-
-
 #####################################################
 # 6. 도구 단위로 테스트
 
@@ -73,6 +66,7 @@ def search_faq(keyword: str) -> str:
 # print(search_faq.invoke({"keyword": "무료배송"}))
 
 
+# 다음 페이지
 ##################################
 # 3. 정책 도구 빌더
 def build_policy_tool():
@@ -96,7 +90,6 @@ def build_policy_tool():
         retriever, "policy_search",
         "환불/교환/멤버십 등 승승장구몰 사내 정책 문서를 검색한다.")  # ← LLM이 읽는 도구 설명
 
-
 #################################################
 # 1. 시스템 프롬프트 — 에이전트의 역할 규칙
 
@@ -112,7 +105,6 @@ SYSTEM_PROMPT = (
 # 2. 에이전트 빌더 — 통합의 핵심
 _agent = None   # 모듈 캐시 (PDF 인덱싱이 비싸서 한 번만 빌드)
 
-
 def build_agent():
     """설정+도구+RAG+메모리를 결합한 단일 에이전트를 만든다(30강 통합의 핵심)."""
     from langchain.agents import create_agent
@@ -127,7 +119,6 @@ def build_agent():
     logger.info(f"에이전트 구성 완료(도구 {len(tools)}개)")
     return agent
 
-
 ############################################
 # 4. 단일 진입점 answer (28강 설계)
 def answer(message: str, thread_id: str = "demo") -> str:
@@ -140,8 +131,7 @@ def answer(message: str, thread_id: str = "demo") -> str:
     result = _agent.invoke({"messages": [{"role": "user", "content": message}]}, config)
     return result["messages"][-1].content
 
-
-
+# 다음 페이지
 #########################################
 # 1. 데모 시나리오 — 세 능력을 한 번에
 def main():
@@ -155,7 +145,6 @@ def main():
         print("=" * 60)
         print(f"[턴 {i}] 고객:", q)
         print("상담원:", answer(q, thread_id=tid))   # 같은 tid → 같은 대화 세션
-
 
 if __name__ == "__main__":
     main()
